@@ -1,0 +1,145 @@
+:root {
+  --bg: #f4efe4;
+  --panel: #fffef9;
+  --ink: #1f2624;
+  --muted: #58615d;
+  --accent: #0f766e;
+  --accent-2: #b45309;
+  --stroke: #d3c7ad;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Gill Sans", sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top right, #f9c98d 0%, rgba(249, 201, 141, 0) 40%),
+    radial-gradient(circle at bottom left, #b7e2da 0%, rgba(183, 226, 218, 0) 45%),
+    var(--bg);
+}
+
+.app-shell {
+  max-width: 1080px;
+  margin: 2rem auto;
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1.5fr 1fr;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 16px;
+  padding: 1.2rem;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+h1, h2 {
+  margin-top: 0;
+  letter-spacing: 0.02em;
+}
+
+p {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+label {
+  display: block;
+  margin: 0.8rem 0 0.35rem;
+  font-weight: 600;
+}
+
+textarea,
+select,
+input[type="number"],
+input[type="range"] {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--stroke);
+  font: inherit;
+  background: #fff;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.row {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: 1fr 1fr;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  font: inherit;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button[type="submit"] {
+  background: var(--accent);
+  color: white;
+}
+
+#randomize {
+  background: var(--accent-2);
+  color: white;
+}
+
+ul {
+  padding-left: 1rem;
+}
+
+.sample {
+  display: inline-block;
+  width: 100%;
+  border: 1px solid var(--stroke);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.hint {
+  font-size: 0.95rem;
+}
+
+.alerts {
+  list-style: none;
+  padding: 0;
+}
+
+.alert {
+  border-radius: 8px;
+  padding: 0.6rem;
+  margin: 0.4rem 0;
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

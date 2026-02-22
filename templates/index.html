@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MIDI Voicing Lab</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
+<body>
+  <main class="app-shell">
+    <section class="panel">
+      <h1>MIDI Voicing Lab</h1>
+      <p>
+        Gib eine Akkordfolge ein, wähle einen Stil und exportiere eine MIDI-Datei für Logic Pro.
+        Die Engine nutzt Voice-Leading, 2-5-1-Erkennung und modale Farbwechsel.
+      </p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <ul class="alerts">
+            {% for category, message in messages %}
+              <li class="alert {{ category }}">{{ message }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('generate') }}" method="post" id="generator-form">
+        <label for="progression">Akkordfolge</label>
+        <textarea id="progression" name="progression" rows="4" required>Dm7 G7 Cmaj7 A7 | Dm7 G7 Cmaj7</textarea>
+
+        <div class="row">
+          <div>
+            <label for="style">Style</label>
+            <select id="style" name="style">
+              <option value="random">Random</option>
+              {% for key, profile in styles.items() %}
+                <option value="{{ key }}">{{ profile.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div>
+            <label for="tempo">Tempo (BPM)</label>
+            <input id="tempo" name="tempo" type="number" min="40" max="220" value="98" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="complexity">Komplexität: <span id="complexity-value">65</span></label>
+            <input id="complexity" name="complexity" type="range" min="0" max="100" value="65" />
+          </div>
+
+          <div>
+            <label for="beats_per_chord">Beats pro Akkord</label>
+            <select id="beats_per_chord" name="beats_per_chord">
+              <option value="4">4 (ganzer Takt)</option>
+              <option value="2">2 (halber Takt)</option>
+            </select>
+          </div>
+        </div>
+
+        <input type="hidden" id="seed" name="seed" value="" />
+
+        <div class="actions">
+          <button type="button" id="randomize">Zufall</button>
+          <button type="submit">MIDI generieren</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel hint-panel">
+      <h2>Input-Beispiele</h2>
+      <ul>
+        {% for progression in samples %}
+          <li><button type="button" class="sample" data-progression="{{ progression }}">{{ progression }}</button></li>
+        {% endfor %}
+      </ul>
+      <p class="hint">Tipp: Mit höherer Komplexität werden mehr Alterationen, Spannungsnoten und modale Farben genutzt.</p>
+    </section>
+  </main>
+
+  <script>
+    const complexityInput = document.getElementById('complexity');
+    const complexityValue = document.getElementById('complexity-value');
+    const styleSelect = document.getElementById('style');
+    const progressionInput = document.getElementById('progression');
+    const tempoInput = document.getElementById('tempo');
+    const seedInput = document.getElementById('seed');
+
+    complexityInput.addEventListener('input', () => {
+      complexityValue.textContent = complexityInput.value;
+    });
+
+    const sampleButtons = [...document.querySelectorAll('.sample')];
+    sampleButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        progressionInput.value = button.dataset.progression;
+      });
+    });
+
+    document.getElementById('randomize').addEventListener('click', () => {
+      const styleOptions = [...styleSelect.options].filter((option) => option.value !== 'random');
+      const stylePick = styleOptions[Math.floor(Math.random() * styleOptions.length)];
+      styleSelect.value = stylePick.value;
+
+      if (sampleButtons.length > 0) {
+        const samplePick = sampleButtons[Math.floor(Math.random() * sampleButtons.length)];
+        progressionInput.value = samplePick.dataset.progression;
+      }
+
+      complexityInput.value = String(40 + Math.floor(Math.random() * 61));
+      complexityValue.textContent = complexityInput.value;
+      tempoInput.value = String(82 + Math.floor(Math.random() * 56));
+      seedInput.value = String(Math.floor(Math.random() * 1000000000));
+    });
+  </script>
+</body>
+</html>
