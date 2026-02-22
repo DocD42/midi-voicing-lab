@@ -336,7 +336,9 @@ def prioritize_pitch_classes(
 
     ordered = sorted(pitch_classes, key=ranking)
     if complexity > 0.75:
-        rng.shuffle(ordered[2:])
+        tail = ordered[2:]
+        rng.shuffle(tail)
+        ordered = ordered[:2] + tail
     return ordered
 
 
