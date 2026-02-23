@@ -33,6 +33,8 @@ class VoicedChord:
     start_beat: float
     duration: float
     notes: list[int]
+    left_hand: list[int]
+    right_hand: list[int]
     velocity: int
 
 
@@ -149,6 +151,7 @@ def generate_arrangement(
         pitch_classes = build_pitch_class_palette(chord, profile, complexity, mode_track[idx], role, rng)
         voice = build_voice(chord, pitch_classes, previous_voice, profile, complexity, role, rng)
         previous_voice = voice
+        left_hand, right_hand = split_voice_hands(chord, voice, complexity)
 
         for offset, duration, velocity_scale in profile.hit_pattern:
             if offset >= beats_per_chord:
@@ -162,6 +165,8 @@ def generate_arrangement(
                     start_beat=current_beat + offset,
                     duration=max(0.1, clipped_duration),
                     notes=voice,
+                    left_hand=left_hand,
+                    right_hand=right_hand,
                     velocity=max(45, min(118, velocity)),
                 )
             )
@@ -372,3 +377,51 @@ def fit_note_to_range(note: int, low: int, high: int, pc: int) -> int:
     if not options:
         return max(low, min(high, candidate))
     return min(options, key=lambda n: abs(n - note))
+
+
+def split_voice_hands(chord: ChordSymbol, voice: list[int], complexity: float) -> tuple[list[int], list[int]]:
+    sorted_voice = sorted(voice)
+    root_pc = chord.bass_pc if chord.bass_pc is not None else chord.root_pc
+
+    left_bass = fit_note_to_range(40, 33, 52, root_pc)
+    guide_pcs = required_pitch_classes(chord)[1:]
+    left: list[int] = [left_bass]
+
+    if complexity >= 0.35 and guide_pcs:
+        left_guide = fit_note_to_range(50, 41, 60, guide_pcs[0])
+        while left_guide - left_bass < 4:
+            left_guide += 12
+        while left_guide > 60:
+            left_guide -= 12
+        left.append(max(36, min(60, left_guide)))
+
+    right: list[int] = []
+    for note in sorted_voice:
+        candidate = note
+        while candidate < 58:
+            candidate += 12
+        while candidate > 92:
+            candidate -= 12
+        right.append(max(55, min(92, candidate)))
+
+    right = sorted(set(right))
+
+    if not right:
+        root_high = fit_note_to_range(64, 58, 88, root_pc)
+        right = [root_high, min(92, root_high + 7)]
+
+    if complexity >= 0.55 and len(right) < 3 and len(sorted_voice) >= 2:
+        extra = right[-1] + 5
+        if extra <= 92:
+            right.append(extra)
+            right = sorted(set(right))
+
+    lowest_right = right[0]
+    adjusted_left: list[int] = []
+    for note in sorted(left):
+        candidate = note
+        while candidate >= lowest_right - 3:
+            candidate -= 12
+        adjusted_left.append(max(28, candidate))
+
+    return sorted(set(adjusted_left)), right

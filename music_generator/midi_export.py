@@ -17,24 +17,30 @@ def arrangement_to_midi(arrangement: Arrangement, tempo: int) -> bytes:
     meta_track.append(mido.MetaMessage("time_signature", numerator=4, denominator=4, time=0))
     meta_track.append(mido.MetaMessage("track_name", name=f"Voicings ({arrangement.style})", time=0))
 
-    note_track = mido.MidiTrack()
-    midi.tracks.append(note_track)
+    left_track = mido.MidiTrack()
+    midi.tracks.append(left_track)
+    left_track.append(mido.MetaMessage("track_name", name="Piano LH", time=0))
 
-    timeline: list[tuple[int, int, mido.Message]] = []
+    right_track = mido.MidiTrack()
+    midi.tracks.append(right_track)
+    right_track.append(mido.MetaMessage("track_name", name="Piano RH", time=0))
+
+    left_timeline: list[tuple[int, int, mido.Message]] = []
+    right_timeline: list[tuple[int, int, mido.Message]] = []
 
     for event in arrangement.events:
         start_tick = int(round(event.start_beat * ticks_per_beat))
         end_tick = int(round((event.start_beat + event.duration) * ticks_per_beat))
 
-        for note in event.notes:
-            timeline.append(
+        for note in event.left_hand:
+            left_timeline.append(
                 (
                     start_tick,
                     1,
-                    mido.Message("note_on", note=note, velocity=event.velocity, channel=0, time=0),
+                    mido.Message("note_on", note=note, velocity=max(40, event.velocity - 8), channel=0, time=0),
                 )
             )
-            timeline.append(
+            left_timeline.append(
                 (
                     end_tick,
                     0,
@@ -42,17 +48,39 @@ def arrangement_to_midi(arrangement: Arrangement, tempo: int) -> bytes:
                 )
             )
 
+        notes_for_right = event.right_hand if event.right_hand else event.notes
+        for note in notes_for_right:
+            right_timeline.append(
+                (
+                    start_tick,
+                    1,
+                    mido.Message("note_on", note=note, velocity=event.velocity, channel=0, time=0),
+                )
+            )
+            right_timeline.append(
+                (
+                    end_tick,
+                    0,
+                    mido.Message("note_off", note=note, velocity=0, channel=0, time=0),
+                )
+            )
+
+    append_timeline(left_track, left_timeline)
+    append_timeline(right_track, right_timeline)
+
+    buffer = io.BytesIO()
+    midi.save(file=buffer)
+    return buffer.getvalue()
+
+
+def append_timeline(track: mido.MidiTrack, timeline: list[tuple[int, int, mido.Message]]) -> None:
     timeline.sort(key=lambda item: (item[0], item[1]))
 
     previous_tick = 0
     for tick, _, message in timeline:
         delta = tick - previous_tick
         message.time = max(0, delta)
-        note_track.append(message)
+        track.append(message)
         previous_tick = tick
 
-    note_track.append(mido.MetaMessage("end_of_track", time=1))
-
-    buffer = io.BytesIO()
-    midi.save(file=buffer)
-    return buffer.getvalue()
+    track.append(mido.MetaMessage("end_of_track", time=1))

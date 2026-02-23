@@ -61,11 +61,18 @@
           </div>
         </div>
 
+        <div class="row">
+          <div>
+            <label for="variations">Varianten (Batch)</label>
+            <input id="variations" name="variations" type="number" min="1" max="12" value="1" />
+          </div>
+        </div>
+
         <input type="hidden" id="seed" name="seed" value="" />
 
         <div class="actions">
           <button type="button" id="randomize">Zufall</button>
-          <button type="submit">MIDI generieren</button>
+          <button type="submit">MIDI / ZIP generieren</button>
         </div>
       </form>
     </section>
@@ -87,6 +94,7 @@
     const styleSelect = document.getElementById('style');
     const progressionInput = document.getElementById('progression');
     const tempoInput = document.getElementById('tempo');
+    const variationsInput = document.getElementById('variations');
     const seedInput = document.getElementById('seed');
 
     complexityInput.addEventListener('input', () => {
@@ -113,6 +121,7 @@
       complexityInput.value = String(40 + Math.floor(Math.random() * 61));
       complexityValue.textContent = complexityInput.value;
       tempoInput.value = String(82 + Math.floor(Math.random() * 56));
+      variationsInput.value = String(1 + Math.floor(Math.random() * 4));
       seedInput.value = String(Math.floor(Math.random() * 1000000000));
     });
   </script>

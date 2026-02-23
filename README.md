@@ -7,6 +7,8 @@ Web-App, die aus Akkordfolgen Piano-Voicings erzeugt und als MIDI-Datei exportie
 - Input: freie Akkordfolge (`Dm7 G7 Cmaj7 A7` usw.)
 - Styles: `Jazz`, `Soul`, `Pop`, `Indie`, `Alternative Rock`, plus `Random`
 - Zufallsknopf für Style, Beispiel-Progression, Tempo und Seed
+- Left-Hand / Right-Hand Piano-Splitting auf getrennten MIDI-Spuren
+- Batch-Export: mehrere Varianten in einem ZIP
 - Spannungsaufbau durch:
   - 2-5-1-Erkennung und kadenzabhängige Tensions
   - modale Farbwechsel (z. B. Lydian/Dorian/Aeolian)

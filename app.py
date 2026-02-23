@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 import io
 import random
+import zipfile
 
 from flask import Flask, flash, redirect, render_template, request, send_file, url_for
 
@@ -37,35 +38,55 @@ def generate():
 
         beats_per_chord = float(request.form.get("beats_per_chord", "4"))
         beats_per_chord = 2.0 if beats_per_chord <= 2 else 4.0
+        variations = int(request.form.get("variations", "1"))
+        variations = max(1, min(12, variations))
 
         seed_raw = request.form.get("seed", "")
         seed = int(seed_raw) if seed_raw.strip() else None
 
         chords = parse_progression(progression_text)
-
-        if requested_style == "random":
-            style = random.choice(list(STYLES.keys()))
-        else:
-            style = requested_style
-
-        arrangement = generate_arrangement(
-            chords=chords,
-            style=style,
-            complexity=complexity,
-            beats_per_chord=beats_per_chord,
-            tempo=tempo,
-            seed=seed,
-        )
-        midi_bytes = arrangement_to_midi(arrangement, tempo=tempo)
-
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"voicings_{style}_{timestamp}.mid"
+        outputs: list[tuple[str, bytes]] = []
+
+        for index in range(variations):
+            if requested_style == "random":
+                style = random.choice(list(STYLES.keys()))
+            else:
+                style = requested_style
+
+            current_seed = (seed + index) if seed is not None else random.randint(1, 1_000_000_000)
+            arrangement = generate_arrangement(
+                chords=chords,
+                style=style,
+                complexity=complexity,
+                beats_per_chord=beats_per_chord,
+                tempo=tempo,
+                seed=current_seed,
+            )
+            midi_bytes = arrangement_to_midi(arrangement, tempo=tempo)
+            outputs.append((f"voicings_{style}_{index + 1:02d}.mid", midi_bytes))
+
+        if len(outputs) == 1:
+            filename, midi_bytes = outputs[0]
+            return send_file(
+                io.BytesIO(midi_bytes),
+                mimetype="audio/midi",
+                as_attachment=True,
+                download_name=filename,
+            )
+
+        archive_name = f"voicings_batch_{timestamp}.zip"
+        archive_buffer = io.BytesIO()
+        with zipfile.ZipFile(archive_buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for filename, payload in outputs:
+                archive.writestr(filename, payload)
+        archive_buffer.seek(0)
 
         return send_file(
-            io.BytesIO(midi_bytes),
-            mimetype="audio/midi",
+            archive_buffer,
+            mimetype="application/zip",
             as_attachment=True,
-            download_name=filename,
+            download_name=archive_name,
         )
     except ValueError as exc:
         flash(str(exc), "error")
