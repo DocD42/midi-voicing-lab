@@ -115,6 +115,20 @@ button[type="submit"] {
   color: white;
 }
 
+#preview {
+  background: #1d4ed8;
+  color: white;
+}
+
+#stop-preview {
+  background: #374151;
+  color: white;
+}
+
+#preview-status {
+  margin-top: 0.8rem;
+}
+
 ul {
   padding-left: 1rem;
 }

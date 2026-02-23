@@ -52,7 +52,7 @@ BUILTIN_PROGRESSIONS = [
     "Em7 Bm7 Cmaj7 D7",
 ]
 
-CHORD_RE = re.compile(r"^\s*([A-G](?:#|b)?)([^\s/]*)(?:/([A-G](?:#|b)?))?\s*$")
+CHORD_RE = re.compile(r"^\s*([A-Ga-g](?:#|b)?)([^\s/]*)(?:/([A-Ga-g](?:#|b)?))?\s*$")
 
 
 @dataclass(frozen=True)
@@ -86,7 +86,9 @@ def parse_chord(token: str) -> ChordSymbol:
     if not match:
         raise ValueError(f"Ungültiges Akkordformat: {token}")
 
-    root_name, descriptor, bass_name = match.groups()
+    root_name_raw, descriptor, bass_name_raw = match.groups()
+    root_name = normalize_note_name(root_name_raw)
+    bass_name = normalize_note_name(bass_name_raw) if bass_name_raw else None
     if root_name not in NOTE_TO_PC:
         raise ValueError(f"Unbekannter Grundton: {root_name}")
 
@@ -103,6 +105,17 @@ def parse_chord(token: str) -> ChordSymbol:
         alterations=alterations,
         bass_pc=bass_pc,
     )
+
+
+def normalize_note_name(note_name: str) -> str:
+    if not note_name:
+        raise ValueError("Leerer Notenname.")
+
+    letter = note_name[0].upper()
+    accidental = note_name[1:]
+    if accidental not in {"", "#", "b"}:
+        raise ValueError(f"Ungültige Alteration im Notennamen: {note_name}")
+    return f"{letter}{accidental}"
 
 
 def classify_quality(descriptor: str) -> str:
@@ -125,7 +138,8 @@ def classify_quality(descriptor: str) -> str:
 
     minor_markers = ("m", "min", "-")
     is_minor = d.startswith(minor_markers) and "maj" not in d
-    contains_seventh = any(n in d for n in ("7", "9", "11", "13"))
+    has_add_extension_only = any(token in d for token in ("add9", "add11", "add13"))
+    contains_seventh = ("7" in d) or ("13" in d) or ("11" in d) or (("9" in d) and not has_add_extension_only)
 
     if is_minor and contains_seventh:
         return "min7"

@@ -20,6 +20,12 @@ class TheoryTests(unittest.TestCase):
         progression = parse_progression("Dm7 G7 Cmaj7")
         self.assertEqual(len(progression), 3)
 
+    def test_parse_lowercase_root(self):
+        chord = parse_chord("c#add9")
+        self.assertEqual(chord.root_pc, 1)
+        self.assertEqual(chord.quality, "maj")
+        self.assertIn("9", chord.extensions)
+
     def test_detect_ii_v_i(self):
         progression = parse_progression("Dm7 G7 Cmaj7")
         roles = analyze_cadences(progression)

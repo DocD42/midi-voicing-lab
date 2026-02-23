@@ -7,9 +7,11 @@ Web-App, die aus Akkordfolgen Piano-Voicings erzeugt und als MIDI-Datei exportie
 - Input: freie Akkordfolge (`Dm7 G7 Cmaj7 A7` usw.)
 - Styles: `Jazz`, `Soul`, `Pop`, `Indie`, `Alternative Rock`, plus `Random`
 - Zufallsknopf für Style, Beispiel-Progression, Tempo und Seed
+- Sound-Preview direkt im Browser (WebAudio-Synth)
 - Left-Hand / Right-Hand Piano-Splitting auf getrennten MIDI-Spuren
 - Batch-Export: mehrere Varianten in einem ZIP
 - Optionaler Humanize-Modus (Timing + Velocity) mit einstellbarer Stärke
+- Akkordparser akzeptiert auch lowercase-Roots (z. B. `c#add9`)
 - Spannungsaufbau durch:
   - 2-5-1-Erkennung und kadenzabhängige Tensions
   - modale Farbwechsel (z. B. Lydian/Dorian/Aeolian)
@@ -58,6 +60,5 @@ git push -u origin main
 ## Nächste Ausbaustufen
 
 - Drum/Groove MIDI Track als zweite Spur
-- Humanize (Timing/Velocity)
-- Separate Left-/Right-Hand-Distribution
-- Export von mehreren Variationen in einem Durchlauf
+- Arpeggio-/Comping-Patterns pro Stil
+- Preset-Management für eigene Generator-Setups

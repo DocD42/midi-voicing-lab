@@ -25,7 +25,7 @@
         {% endif %}
       {% endwith %}
 
-      <form action="{{ url_for('generate') }}" method="post" id="generator-form">
+      <form action="{{ url_for('generate') }}" method="post" id="generator-form" data-preview-url="{{ url_for('preview') }}">
         <label for="progression">Akkordfolge</label>
         <textarea id="progression" name="progression" rows="4" required>Dm7 G7 Cmaj7 A7 | Dm7 G7 Cmaj7</textarea>
 
@@ -84,9 +84,12 @@
         <input type="hidden" id="seed" name="seed" value="" />
 
         <div class="actions">
+          <button type="button" id="preview">Anhören</button>
+          <button type="button" id="stop-preview">Stop</button>
           <button type="button" id="randomize">Zufall</button>
           <button type="submit">MIDI / ZIP generieren</button>
         </div>
+        <p id="preview-status" class="hint">Preview bereit.</p>
       </form>
     </section>
 
@@ -104,6 +107,7 @@
   <script>
     const complexityInput = document.getElementById('complexity');
     const complexityValue = document.getElementById('complexity-value');
+    const form = document.getElementById('generator-form');
     const styleSelect = document.getElementById('style');
     const progressionInput = document.getElementById('progression');
     const tempoInput = document.getElementById('tempo');
@@ -112,6 +116,14 @@
     const humanizeInput = document.getElementById('humanize_amount');
     const humanizeValue = document.getElementById('humanize-value');
     const seedInput = document.getElementById('seed');
+    const previewButton = document.getElementById('preview');
+    const stopButton = document.getElementById('stop-preview');
+    const previewStatus = document.getElementById('preview-status');
+    const previewUrl = form.dataset.previewUrl;
+
+    let audioContext = null;
+    let activeNodes = [];
+    let previewTimeoutId = null;
 
     complexityInput.addEventListener('input', () => {
       complexityValue.textContent = complexityInput.value;
@@ -125,6 +137,114 @@
       button.addEventListener('click', () => {
         progressionInput.value = button.dataset.progression;
       });
+    });
+
+    function ensureSeed() {
+      if (!seedInput.value.trim()) {
+        seedInput.value = String(Math.floor(Math.random() * 1000000000));
+      }
+    }
+
+    function midiToFrequency(note) {
+      return 440 * Math.pow(2, (note - 69) / 12);
+    }
+
+    function stopPreview() {
+      if (previewTimeoutId) {
+        window.clearTimeout(previewTimeoutId);
+        previewTimeoutId = null;
+      }
+      activeNodes.forEach((node) => {
+        try {
+          node.gain.cancelScheduledValues(0);
+          node.gain.setValueAtTime(0.0001, node.context.currentTime);
+          node.osc.stop();
+        } catch (error) {
+          // ignore stopped nodes
+        }
+      });
+      activeNodes = [];
+      previewStatus.textContent = 'Preview gestoppt.';
+    }
+
+    function scheduleHand(notes, startTime, durationSeconds, velocity, waveType, gainScale) {
+      notes.forEach((midiNote) => {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.type = waveType;
+        osc.frequency.setValueAtTime(midiToFrequency(midiNote), startTime);
+
+        const peak = Math.min(0.25, (velocity / 127) * gainScale);
+        const attack = 0.012;
+        const release = Math.min(0.18, durationSeconds * 0.45);
+        const sustainTime = Math.max(startTime + attack + 0.02, startTime + durationSeconds - release);
+
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.linearRampToValueAtTime(peak, startTime + attack);
+        gain.gain.linearRampToValueAtTime(peak * 0.72, sustainTime);
+        gain.gain.linearRampToValueAtTime(0.0001, startTime + durationSeconds + 0.03);
+
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(startTime);
+        osc.stop(startTime + durationSeconds + 0.06);
+        activeNodes.push({ osc, gain, context: audioContext });
+      });
+    }
+
+    function playPreview(data) {
+      stopPreview();
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      const secPerBeat = 60 / data.tempo;
+      const startAt = audioContext.currentTime + 0.04;
+      let maxEndTime = startAt;
+
+      data.events.forEach((event) => {
+        const startTime = startAt + (event.start_beat * secPerBeat);
+        const durationSeconds = Math.max(0.06, event.duration * secPerBeat);
+        scheduleHand(event.left_hand, startTime, durationSeconds, event.velocity, 'triangle', 0.14);
+        scheduleHand(event.right_hand, startTime, durationSeconds, event.velocity, 'sawtooth', 0.11);
+        maxEndTime = Math.max(maxEndTime, startTime + durationSeconds);
+      });
+
+      const totalSeconds = Math.max(0, maxEndTime - startAt);
+      previewStatus.textContent = `Preview läuft (${data.style}, Seed ${data.seed})`;
+      previewTimeoutId = window.setTimeout(() => {
+        previewStatus.textContent = 'Preview fertig.';
+      }, Math.ceil((totalSeconds + 0.1) * 1000));
+    }
+
+    previewButton.addEventListener('click', async () => {
+      ensureSeed();
+      previewButton.disabled = true;
+      previewStatus.textContent = 'Preview wird berechnet...';
+      try {
+        const response = await fetch(previewUrl, {
+          method: 'POST',
+          body: new FormData(form),
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || 'Preview fehlgeschlagen.');
+        }
+        seedInput.value = String(payload.seed);
+        playPreview(payload);
+      } catch (error) {
+        previewStatus.textContent = `Fehler: ${error.message}`;
+      } finally {
+        previewButton.disabled = false;
+      }
+    });
+
+    stopButton.addEventListener('click', () => {
+      stopPreview();
+    });
+
+    form.addEventListener('submit', () => {
+      ensureSeed();
     });
 
     document.getElementById('randomize').addEventListener('click', () => {
@@ -145,6 +265,7 @@
       humanizeInput.value = String(18 + Math.floor(Math.random() * 50));
       humanizeValue.textContent = humanizeInput.value;
       seedInput.value = String(Math.floor(Math.random() * 1000000000));
+      previewStatus.textContent = 'Preview bereit.';
     });
   </script>
 </body>
