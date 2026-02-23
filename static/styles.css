@@ -56,6 +56,18 @@ label {
   font-weight: 600;
 }
 
+.toggle {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.toggle input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--accent);
+}
+
 textarea,
 select,
 input[type="number"],

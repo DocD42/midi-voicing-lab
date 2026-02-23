@@ -9,6 +9,7 @@ Web-App, die aus Akkordfolgen Piano-Voicings erzeugt und als MIDI-Datei exportie
 - Zufallsknopf für Style, Beispiel-Progression, Tempo und Seed
 - Left-Hand / Right-Hand Piano-Splitting auf getrennten MIDI-Spuren
 - Batch-Export: mehrere Varianten in einem ZIP
+- Optionaler Humanize-Modus (Timing + Velocity) mit einstellbarer Stärke
 - Spannungsaufbau durch:
   - 2-5-1-Erkennung und kadenzabhängige Tensions
   - modale Farbwechsel (z. B. Lydian/Dorian/Aeolian)

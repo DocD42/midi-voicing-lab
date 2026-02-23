@@ -50,6 +50,39 @@ class VoicingIntegrationTests(unittest.TestCase):
         self.assertIn("Piano LH", track_names)
         self.assertIn("Piano RH", track_names)
 
+    def test_humanize_changes_timing_and_velocity_with_seed(self):
+        chords = parse_progression("Dm7 G7 Cmaj7 A7")
+        plain = generate_arrangement(
+            chords=chords,
+            style="jazz",
+            complexity=0.7,
+            beats_per_chord=4,
+            tempo=100,
+            seed=111,
+            humanize=False,
+            humanize_amount=0.6,
+        )
+        humanized = generate_arrangement(
+            chords=chords,
+            style="jazz",
+            complexity=0.7,
+            beats_per_chord=4,
+            tempo=100,
+            seed=111,
+            humanize=True,
+            humanize_amount=0.6,
+        )
+
+        self.assertEqual(len(plain.events), len(humanized.events))
+        timing_different = any(
+            abs(base.start_beat - mod.start_beat) > 1e-9
+            for base, mod in zip(plain.events, humanized.events)
+        )
+        velocity_different = any(
+            base.velocity != mod.velocity for base, mod in zip(plain.events, humanized.events)
+        )
+        self.assertTrue(timing_different or velocity_different)
+
 
 if __name__ == "__main__":
     unittest.main()

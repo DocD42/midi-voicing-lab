@@ -131,12 +131,15 @@ def generate_arrangement(
     beats_per_chord: float,
     tempo: int,
     seed: int | None = None,
+    humanize: bool = False,
+    humanize_amount: float = 0.0,
 ) -> Arrangement:
     if style not in STYLES:
         raise ValueError(f"Style nicht gefunden: {style}")
 
     profile = STYLES[style]
     complexity = min(max(complexity, 0.0), 1.0)
+    humanize_amount = min(max(humanize_amount, 0.0), 1.0)
     rng = random.Random(seed)
 
     cadence_roles = analyze_cadences(chords)
@@ -172,6 +175,15 @@ def generate_arrangement(
             )
 
         current_beat += beats_per_chord
+
+    if humanize and humanize_amount > 0:
+        humanize_seed = (seed if seed is not None else rng.randint(1, 1_000_000_000)) + 7919
+        events = apply_humanize(
+            events=events,
+            total_beats=current_beat,
+            amount=humanize_amount,
+            rng=random.Random(humanize_seed),
+        )
 
     return Arrangement(style=style, events=events, total_beats=current_beat)
 
@@ -425,3 +437,44 @@ def split_voice_hands(chord: ChordSymbol, voice: list[int], complexity: float) -
         adjusted_left.append(max(28, candidate))
 
     return sorted(set(adjusted_left)), right
+
+
+def apply_humanize(
+    events: list[VoicedChord],
+    total_beats: float,
+    amount: float,
+    rng: random.Random,
+) -> list[VoicedChord]:
+    max_timing_shift = 0.01 + (0.05 * amount)
+    max_duration_shift = max_timing_shift * 0.7
+    max_velocity_shift = int(round(2 + (12 * amount)))
+
+    humanized: list[VoicedChord] = []
+    for event in events:
+        start_shift = rng.uniform(-max_timing_shift, max_timing_shift)
+        duration_shift = rng.uniform(-max_duration_shift, max_duration_shift)
+        velocity_shift = rng.randint(-max_velocity_shift, max_velocity_shift)
+
+        new_start = event.start_beat + start_shift
+        new_start = max(0.0, min(max(0.0, total_beats - 0.1), new_start))
+
+        new_duration = max(0.12, event.duration + duration_shift)
+        max_duration = max(0.12, total_beats - new_start)
+        new_duration = min(max_duration, new_duration)
+
+        new_velocity = max(38, min(120, event.velocity + velocity_shift))
+
+        humanized.append(
+            VoicedChord(
+                chord=event.chord,
+                style=event.style,
+                start_beat=new_start,
+                duration=new_duration,
+                notes=event.notes,
+                left_hand=event.left_hand,
+                right_hand=event.right_hand,
+                velocity=new_velocity,
+            )
+        )
+
+    return sorted(humanized, key=lambda event: event.start_beat)

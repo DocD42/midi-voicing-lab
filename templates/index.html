@@ -68,6 +68,19 @@
           </div>
         </div>
 
+        <div class="row">
+          <div>
+            <label class="toggle">
+              <input id="humanize" name="humanize" type="checkbox" checked />
+              Humanize aktivieren
+            </label>
+          </div>
+          <div>
+            <label for="humanize_amount">Humanize Stärke: <span id="humanize-value">30</span></label>
+            <input id="humanize_amount" name="humanize_amount" type="range" min="0" max="100" value="30" />
+          </div>
+        </div>
+
         <input type="hidden" id="seed" name="seed" value="" />
 
         <div class="actions">
@@ -95,10 +108,16 @@
     const progressionInput = document.getElementById('progression');
     const tempoInput = document.getElementById('tempo');
     const variationsInput = document.getElementById('variations');
+    const humanizeCheckbox = document.getElementById('humanize');
+    const humanizeInput = document.getElementById('humanize_amount');
+    const humanizeValue = document.getElementById('humanize-value');
     const seedInput = document.getElementById('seed');
 
     complexityInput.addEventListener('input', () => {
       complexityValue.textContent = complexityInput.value;
+    });
+    humanizeInput.addEventListener('input', () => {
+      humanizeValue.textContent = humanizeInput.value;
     });
 
     const sampleButtons = [...document.querySelectorAll('.sample')];
@@ -122,6 +141,9 @@
       complexityValue.textContent = complexityInput.value;
       tempoInput.value = String(82 + Math.floor(Math.random() * 56));
       variationsInput.value = String(1 + Math.floor(Math.random() * 4));
+      humanizeCheckbox.checked = Math.random() > 0.15;
+      humanizeInput.value = String(18 + Math.floor(Math.random() * 50));
+      humanizeValue.textContent = humanizeInput.value;
       seedInput.value = String(Math.floor(Math.random() * 1000000000));
     });
   </script>

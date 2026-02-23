@@ -40,6 +40,9 @@ def generate():
         beats_per_chord = 2.0 if beats_per_chord <= 2 else 4.0
         variations = int(request.form.get("variations", "1"))
         variations = max(1, min(12, variations))
+        humanize = request.form.get("humanize") == "on"
+        humanize_amount = float(request.form.get("humanize_amount", "30")) / 100.0
+        humanize_amount = max(0.0, min(1.0, humanize_amount))
 
         seed_raw = request.form.get("seed", "")
         seed = int(seed_raw) if seed_raw.strip() else None
@@ -62,6 +65,8 @@ def generate():
                 beats_per_chord=beats_per_chord,
                 tempo=tempo,
                 seed=current_seed,
+                humanize=humanize,
+                humanize_amount=humanize_amount,
             )
             midi_bytes = arrangement_to_midi(arrangement, tempo=tempo)
             outputs.append((f"voicings_{style}_{index + 1:02d}.mid", midi_bytes))
